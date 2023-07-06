@@ -1,7 +1,9 @@
 package com.luv2code.ecommerce.config;
 
+import com.luv2code.ecommerce.entity.Country;
 import com.luv2code.ecommerce.entity.Product;
 import com.luv2code.ecommerce.entity.ProductCategory;
+import com.luv2code.ecommerce.entity.State;
 import jakarta.persistence.EntityManager;
 import jakarta.persistence.metamodel.EntityType;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -11,6 +13,7 @@ import org.springframework.data.rest.webmvc.config.RepositoryRestConfigurer;
 import org.springframework.http.HttpMethod;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 
+import java.util.Arrays;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -28,19 +31,30 @@ public class DataRestConfig implements RepositoryRestConfigurer {
     public void configureRepositoryRestConfiguration(RepositoryRestConfiguration config, CorsRegistry cors) {
         HttpMethod[] unsupportedMethods = {HttpMethod.POST, HttpMethod.DELETE, HttpMethod.PUT};
 
-        config.getExposureConfiguration()
-                .forDomainType(Product.class)
-                .withItemExposure((metadata, httpMethods) -> httpMethods.disable(unsupportedMethods))
-                .withCollectionExposure((metadata, httpMethods) -> httpMethods.disable(unsupportedMethods));
-        config.getExposureConfiguration()
-                .forDomainType(ProductCategory.class)
-                .withItemExposure((metadata, httpMethods) -> httpMethods.disable(unsupportedMethods))
-                .withCollectionExposure((metadata, httpMethods) -> httpMethods.disable(unsupportedMethods));
+        disableHttpMethods(
+                config, unsupportedMethods,
+                Product.class, ProductCategory.class,
+                Country.class, State.class
+        );
 
         exposeIds(config);
 
         RepositoryRestConfigurer.super.configureRepositoryRestConfiguration(config, cors);
     }
+
+    private static void disableHttpMethods(RepositoryRestConfiguration config, HttpMethod[] unsupportedMethods, Class<?>... classes) {
+        if(classes.length > 0) {
+            Arrays.stream(classes).forEach(clazz -> config
+                    .getExposureConfiguration()
+                    .forDomainType(clazz)
+                    .withItemExposure((metadata, httpMethods) -> httpMethods
+                            .disable(unsupportedMethods))
+                    .withCollectionExposure((metadata, httpMethods) -> httpMethods
+                            .disable(unsupportedMethods)));
+        }
+
+    }
+
 
     private void exposeIds(RepositoryRestConfiguration config) {
         Set<EntityType<?>> entities = entityManager.getMetamodel().getEntities();
